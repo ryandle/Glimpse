@@ -167,7 +167,54 @@ task compile -depends clean {
     "Compiling"
     "   Glimpse.All.sln"
     
-    exec { msbuild $base_dir\Glimpse.All.sln /p:Configuration=$config /nologo /verbosity:minimal }
+    exec { msbuild $base_dir\Glimpse.All.sln /p:VisualStudioVersion="12.0" /p:Configuration=$config /nologo /verbosity:minimal }
+}
+
+task strongname_compile -depends clean {
+    "Strong Naming"
+
+    "   Glimpse.Core"
+    # Glimpse.Core has to be strong named during ILMerge, because it compiles against other non-strongnamed DLLs
+    cd $package_dir\ilmerge.*\
+    exec { 
+        & .\ilmerge.exe `
+        /keyfile:$source_dir\SigningKey.snk `
+        /targetplatform:"v4,$framework_dir" `
+        /log `
+        /out:"$source_dir\Glimpse.Core.Net45\nuspec\lib\net45\Glimpse.Core.StrongName.dll" `
+        /internalize:$base_dir\ILMergeInternalize.txt `
+        "$source_dir\Glimpse.Core.Net45\bin\Release\Glimpse.Core.dll" `
+        "$source_dir\Glimpse.Core.Net45\bin\Release\Newtonsoft.Json.dll" `
+        "$source_dir\Glimpse.Core.Net45\bin\Release\Castle.Core.dll" `
+        "$source_dir\Glimpse.Core.Net45\bin\Release\NLog.dll" `
+        "$source_dir\Glimpse.Core.Net45\bin\Release\AntiXssLibrary.dll" `
+        "$source_dir\Glimpse.Core.Net45\bin\Release\Tavis.UriTemplates.dll" `
+        "$source_dir\Glimpse.Core.Net45\bin\Release\Antlr4.StringTemplate.dll"
+    }
+
+    #other libraries that don't have non-strongnamed dependencies can be strong named at compile time
+    $strongNameBuilds = @(
+        @{ ProjectName="Glimpse.AspNet.Net45"; AssemblyName="Glimpse.AspNet.StrongName" },
+        @{ ProjectName="Glimpse.Mvc5"; AssemblyName="Glimpse.Mvc5" }
+        )
+
+    foreach($build in $strongNameBuilds)
+    {
+        "   $($build.ProjectName)"
+
+        exec {
+            msbuild `
+            $source_dir\$($build.ProjectName)\$($build.ProjectName).csproj `
+            /p:SignAssembly=true `
+            /p:AssemblyOriginatorKeyFile=$source_dir/SigningKey.snk `
+            /p:AssemblyName="$($build.AssemblyName)" `
+            /p:DefineConstants="STRONGNAME" `
+            /p:STRONGNAME=true `
+            /p:Configuration=$config `
+            /nologo `
+            /verbosity:minimal
+         }
+    }
 }
 
 task docs -depends compile {
@@ -253,18 +300,26 @@ task merge -depends test {
     copy $source_dir\Glimpse.WindowsAzure.Storage.Net40\bin\Release\Glimpse.WindowsAzure.Storage.* $source_dir\Glimpse.WindowsAzure.Storage.Net40\nuspec\lib\net40\
 }
 
-task pack -depends merge {
+task pack -depends merge, strongname_compile {
     "Packing"
-    
+
     cd $base_dir\.NuGet
     
     "   Glimpse.nuspec"
     $version = Get-AssemblyInformationalVersion $source_dir\Glimpse.Core.Net45\Properties\AssemblyInfo.cs | Update-AssemblyInformationalVersion
     exec { & .\nuget.exe pack $source_dir\Glimpse.Core.Net45\NuSpec\Glimpse.nuspec -OutputDirectory $build_dir\local -Symbols -Version $version }
+
+    "   Glimpse.StrongName.nuspec"
+    $version = Get-AssemblyInformationalVersion $source_dir\Glimpse.Core.Net45\Properties\AssemblyInfo.cs | Update-AssemblyInformationalVersion
+    exec { & .\nuget.exe pack $source_dir\Glimpse.Core.Net45\NuSpec\Glimpse.StrongName.nuspec -OutputDirectory $build_dir\local -Symbols -Version $version }
     
     "   Glimpse.AspNet.nuspec"
     $version = Get-AssemblyInformationalVersion $source_dir\Glimpse.AspNet.Net45\Properties\AssemblyInfo.cs | Update-AssemblyInformationalVersion
     exec { & .\nuget.exe pack $source_dir\Glimpse.AspNet.Net45\NuSpec\Glimpse.AspNet.nuspec -OutputDirectory $build_dir\local -Symbols -Version $version }
+
+    "   Glimpse.AspNet.StrongName.nuspec"
+    $version = Get-AssemblyInformationalVersion $source_dir\Glimpse.AspNet.Net45\Properties\AssemblyInfo.cs | Update-AssemblyInformationalVersion
+    exec { & .\nuget.exe pack $source_dir\Glimpse.AspNet.Net45\NuSpec\Glimpse.AspNet.StrongName.nuspec -OutputDirectory $build_dir\local -Symbols -Version $version }
 
     "   Glimpse.Mvc2.nuspec"
     $version = Get-AssemblyInformationalVersion $source_dir\Glimpse.Mvc2\Properties\AssemblyInfo.cs | Update-AssemblyInformationalVersion
@@ -281,7 +336,11 @@ task pack -depends merge {
     "   Glimpse.Mvc5.nuspec"
     $version = Get-AssemblyInformationalVersion $source_dir\Glimpse.Mvc5\Properties\AssemblyInfo.cs | Update-AssemblyInformationalVersion
     exec { & .\nuget.exe pack $source_dir\Glimpse.Mvc5\NuSpec\Glimpse.Mvc5.nuspec -OutputDirectory $build_dir\local -Symbols -Version $version }
-    
+
+    "   Glimpse.Mvc5.StrongName.nuspec"
+    $version = Get-AssemblyInformationalVersion $source_dir\Glimpse.Mvc5\Properties\AssemblyInfo.cs | Update-AssemblyInformationalVersion
+    exec { & .\nuget.exe pack $source_dir\Glimpse.Mvc5\NuSpec\Glimpse.Mvc5.StrongName.nuspec -OutputDirectory $build_dir\local -Symbols -Version $version }
+
     "   Glimpse.Ado.nuspec"
     $version = Get-AssemblyInformationalVersion $source_dir\Glimpse.Ado.Net45\Properties\AssemblyInfo.cs | Update-AssemblyInformationalVersion
     exec { & .\nuget.exe pack $source_dir\Glimpse.Ado.Net45\NuSpec\Glimpse.Ado.nuspec -OutputDirectory $build_dir\local -Symbols -Version $version }

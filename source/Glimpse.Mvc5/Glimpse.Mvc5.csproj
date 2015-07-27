@@ -90,7 +90,7 @@
   <ItemGroup>
     <Content Include="NuSpec\lib\net45\.gitignore" />
   </ItemGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(STRONGNAME)' == ''">
     <ProjectReference Include="..\Glimpse.AspNet.Net40\Glimpse.AspNet.Net40.csproj">
       <Project>{ded28e26-8a57-472a-a454-e45643f1dea0}</Project>
       <Name>Glimpse.AspNet.Net40</Name>
@@ -99,6 +99,10 @@
       <Project>{dd93b23c-e2d7-4283-9f3f-88f87271018b}</Project>
       <Name>Glimpse.Core.Net40</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(STRONGNAME)' != ''">
+    <Reference Include="..\Glimpse.Core.Net45\NuSpec\lib\net45\Glimpse.Core.StrongName.dll" />
+    <Reference Include="..\Glimpse.AspNet.Net45\bin\Release\Glimpse.AspNet.StrongName.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   

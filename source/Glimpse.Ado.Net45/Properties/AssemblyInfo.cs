@@ -22,6 +22,10 @@ using Glimpse.Core.Extensibility;
 [assembly: AssemblyInformationalVersion("1.7.4")] // Used to specify the NuGet version number at build time
 
 [assembly: CLSCompliant(true)]
+
+#if !STRONGNAME
 [assembly: InternalsVisibleTo("Glimpse.Test.Ado")]
+#endif
+
 [assembly: NuGetPackage("Glimpse.Ado")]
 [assembly: PreApplicationStartMethod(typeof(Initialize), "Start")]

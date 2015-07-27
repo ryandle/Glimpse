@@ -71,11 +71,14 @@
     <Folder Include="NuSpec\lib\net40\" />
     <Folder Include="NuSpec\lib\net45\" />
   </ItemGroup>
-  <ItemGroup>
+  <ItemGroup Condition="'$(STRONGNAME)' == ''">
     <ProjectReference Include="..\Glimpse.Core.Net45\Glimpse.Core.Net45.csproj">
       <Project>{2cb2400f-bc66-4074-b6e4-177a6f78163e}</Project>
       <Name>Glimpse.Core.Net45</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(STRONGNAME)' != ''">
+    <Reference Include="..\Glimpse.Core.Net45\NuSpec\lib\net45\Glimpse.Core.StrongName.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   

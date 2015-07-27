@@ -18,5 +18,8 @@ using Glimpse.Core.Extensibility;
 [assembly: AssemblyFileVersion("1.6.0")]
 [assembly: AssemblyInformationalVersion("1.6.0")] // Used to specify the NuGet version number at build time
 
+#if !STRONGNAME
 [assembly: InternalsVisibleTo("Glimpse.Test.Mvc5")]
+#endif
+
 [assembly: NuGetPackage("Glimpse.Mvc5")]
